@@ -20,6 +20,7 @@ class _CrashDemoPageState extends State<CrashDemoPage> {
   final Map<String, Timer> _orderTimers = {};
   final Map<String, AudioPlayer> _players = {};
   final Map<String, Stopwatch> _elapsed = {};
+  final Map<String, bool> _isDisposed = {};
 
   final Duration totalDuration = Duration(minutes: 2);
 
@@ -31,18 +32,23 @@ class _CrashDemoPageState extends State<CrashDemoPage> {
 
     final player = AudioPlayer(playerId: 'player_$orderId');
     _players[orderId] = player;
+    _isDisposed[orderId] = false;
 
     debugPrint("[$orderId] STARTED");
 
     Future<void> play() async {
+      if (_isDisposed[orderId] == true) {
+        debugPrint("[$orderId] Skipped play: already disposed");
+        return;
+      }
+
       try {
-        if (player.state == PlayerState.stopped || player.state == PlayerState.paused) {
-          debugPrint("[$orderId] Seeking + resuming...");
-          await player.seek(Duration.zero);
-          await player.resume();
-        } else {
-          debugPrint("[$orderId] Skipping play — invalid state: ${player.state}");
-        }
+        debugPrint("[$orderId] Playing...");
+        await player.setReleaseMode(ReleaseMode.stop);
+        await player.setSource(AssetSource('audio/ring-doorbell-short.mp3'));
+        await player.seek(Duration.zero);
+        await player.resume();
+        debugPrint("[$orderId] Played successfully");
       } catch (e) {
         debugPrint("[$orderId] Playback error: $e");
       }
@@ -77,9 +83,13 @@ class _CrashDemoPageState extends State<CrashDemoPage> {
     _elapsed[orderId]?.stop();
     _elapsed.remove(orderId);
 
+    _isDisposed[orderId] = true;
+
     _players[orderId]?.stop();
     _players[orderId]?.dispose();
     _players.remove(orderId);
+
+    _isDisposed.remove(orderId);
 
     debugPrint("[$orderId] STOPPED");
   }
