@@ -36,12 +36,13 @@ class _CrashDemoPageState extends State<CrashDemoPage> {
 
     Future<void> play() async {
       try {
-        debugPrint("[$orderId] Playing...");
-        await player.setReleaseMode(ReleaseMode.stop);
-        await player.setSource(AssetSource('audio/ring-doorbell-short.mp3'));
-        await player.seek(Duration.zero);
-        await player.resume();
-        debugPrint("[$orderId] Played successfully");
+        if (player.state == PlayerState.stopped || player.state == PlayerState.paused) {
+          debugPrint("[$orderId] Seeking + resuming...");
+          await player.seek(Duration.zero);
+          await player.resume();
+        } else {
+          debugPrint("[$orderId] Skipping play — invalid state: ${player.state}");
+        }
       } catch (e) {
         debugPrint("[$orderId] Playback error: $e");
       }
